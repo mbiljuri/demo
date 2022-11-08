@@ -4,12 +4,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -35,15 +38,18 @@ public class CryptoService {
         this.cryptoStatisticService = cryptoStatisticsService;
     }
 
-    public CryptoStatistics calculateCryptoStatistics(String requestedCrypto) throws CryptoNotSupportedException {
+    public CryptoStatistics calculateCryptoStatistics(String requestedCrypto, LocalDate startDate, LocalDate endDate) throws CryptoNotSupportedException, NoCryptoValuesException {
         CryptoStatistics cryptoStatistics = new CryptoStatistics();
         try (FileReader fileReader = new FileReader(cryptoLocation + requestedCrypto.toUpperCase() + "_values.csv")) {
             List<Crypto> cryptoValues = new CsvToBeanBuilder<Crypto>(fileReader).withType(Crypto.class).build().parse();
-
-            cryptoStatistics.setMaxValue(cryptoStatisticService.findMaxValue(cryptoValues));
-            cryptoStatistics.setMinValue(cryptoStatisticService.findMinValue(cryptoValues));
-            cryptoStatistics.setNewestValue(cryptoStatisticService.findNewestValue(cryptoValues));
-            cryptoStatistics.setOldestValue(cryptoStatisticService.findOldestValue(cryptoValues));
+            List<Crypto> filteredCryptoValues = cryptoValues.stream().filter(c -> checkIfDateIsInRange(c.getTimeStamp(), startDate, endDate)).collect(Collectors.toList());
+            
+            if(filteredCryptoValues.isEmpty()) throw new NoCryptoValuesException("No crypto values for specified period!");
+            
+            cryptoStatistics.setMaxValue(cryptoStatisticService.findMaxValue(filteredCryptoValues));
+            cryptoStatistics.setMinValue(cryptoStatisticService.findMinValue(filteredCryptoValues));
+            cryptoStatistics.setNewestValue(cryptoStatisticService.findNewestValue(filteredCryptoValues));
+            cryptoStatistics.setOldestValue(cryptoStatisticService.findOldestValue(filteredCryptoValues));
 
         } catch (FileNotFoundException e) {
             log.info("Crypto is not supported, file: {} does not exist",
@@ -100,4 +106,11 @@ public class CryptoService {
         return cryptosWithNormRangeForDate.entrySet().stream()
                 .max(Comparator.comparingDouble(c -> c.getValue())).get().getKey();
     }
+
+    private boolean checkIfDateIsInRange(Long date, LocalDate starDate, LocalDate endDate) {
+        LocalDate localDate = Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()).toLocalDate();
+        return ((localDate.isEqual(starDate) || localDate.isAfter(starDate)) && (localDate.isEqual(endDate) || localDate.isBefore(endDate)));
+    }
+
+
 }

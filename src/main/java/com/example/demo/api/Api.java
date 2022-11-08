@@ -28,18 +28,23 @@ public class Api {
     private final CryptoService cryptoService;
 
     @GetMapping(path = "/crypto/statistics/{crypto}")
-    public ResponseEntity<CryptoStatistics> cryptoStatisticsCalc(@PathVariable String crypto) throws CryptoNotSupportedException {
-        return new ResponseEntity<>(cryptoService.calculateCryptoStatistics(crypto), HttpStatus.OK);
+    public ResponseEntity<CryptoStatistics> getCryptoStatistics(@PathVariable String crypto,
+            @RequestParam(name = "startDate", required = false, defaultValue = "01.01.2022") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate startDate,
+            @RequestParam(name = "endDate", required = false, defaultValue = "31.01.2022") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate endDate)
+            throws CryptoNotSupportedException, NoCryptoValuesException {
+        return new ResponseEntity<>(cryptoService.calculateCryptoStatistics(crypto, startDate, endDate), HttpStatus.OK);
     }
 
     @GetMapping(path = "/cryptos/normrange/sorted")
-    public ResponseEntity<List<String>> sortCryptosByNormRange() {
+    public ResponseEntity<List<String>> getCryptos() {
         return new ResponseEntity<>(cryptoService.sortCryptosByNormRange(), HttpStatus.OK);
     }
 
     @GetMapping(path = "/cryptos/normrange/highest")
-    public ResponseEntity<String> getCryptoWithHighestNormRangeForDate(@RequestParam("date") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate date) throws NoCryptoValuesException {
+    public ResponseEntity<String> getCryptoWithHighestNormRangeForDate(
+            @RequestParam("date") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate date)
+            throws NoCryptoValuesException {
         return new ResponseEntity<>(cryptoService.getCryptoWithHighestNormRangeForDate(date), HttpStatus.OK);
     }
-    
+
 }
