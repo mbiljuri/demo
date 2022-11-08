@@ -27,6 +27,15 @@ public class Api {
 
     private final CryptoService cryptoService;
 
+    /**
+     * 
+     * @param crypto - crypto for which we calculate statistics (ex. BTC,ETH)
+     * @param startDate - start date, default is 01.01.2022
+     * @param endDate - end date, default is 31.01.2022
+     * @return - statistic for requested crypto(max, min, newest, oldest value)
+     * @throws CryptoNotSupportedException - if crypto is not supported
+     * @throws NoCryptoValuesException - if we specify range for which we don't have crypto values
+     */
     @GetMapping(path = "/crypto/statistics/{crypto}")
     public ResponseEntity<CryptoStatistics> getCryptoStatistics(@PathVariable String crypto,
             @RequestParam(name = "startDate", required = false, defaultValue = "01.01.2022") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate startDate,
@@ -35,11 +44,21 @@ public class Api {
         return new ResponseEntity<>(cryptoService.calculateCryptoStatistics(crypto, startDate, endDate), HttpStatus.OK);
     }
 
+    /**
+     * 
+     * @return - sorted cryptos by normalized range
+     */
     @GetMapping(path = "/cryptos/normrange/sorted")
     public ResponseEntity<List<String>> getCryptos() {
         return new ResponseEntity<>(cryptoService.sortCryptosByNormRange(), HttpStatus.OK);
     }
 
+    /**
+     * 
+     * @param date - day which we specifiy for highest normalized range
+     * @return - returns crypto wiht highest normalized range for selected day
+     * @throws NoCryptoValuesException
+     */
     @GetMapping(path = "/cryptos/normrange/highest")
     public ResponseEntity<String> getCryptoWithHighestNormRangeForDate(
             @RequestParam("date") @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate date)
